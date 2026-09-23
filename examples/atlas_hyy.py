@@ -16,8 +16,7 @@ import numpy as np
 import uproot
 from graphed import Session
 from graphed.awkward import AwkwardBackend, from_parquet
-
-from taskvine_backend import TaskVineExecutor
+from graphed_executors.taskvine_backend import TaskVineExecutor
 
 RELEASE = "2025e-13tev-beta"
 TREE_NAME = "analysis"

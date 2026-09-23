@@ -1,23 +1,14 @@
 # graphed-taskvine
 
-`graphed-taskvine` runs a [`graphed`](https://github.com/graphed-org/graphed) `Plan` on
-[TaskVine](https://cctools.readthedocs.io/en/latest/taskvine/) through the VineGraph interface.
-It keeps graphed's partition and reduction semantics while using TaskVine for distributed
-scheduling, data movement, recovery, and worker management.
+This repository is the experimental home for Graphed + TaskVine HEP workflows, comparison
+pipelines, baselines, and measured results. New experiments belong under [`baselines/`](baselines/).
 
-This repository contains the integration layer; it is not intended to become a separately
-published package. Its first objective is to keep the boundary between graphed and TaskVine small,
-explicit, and testable while both projects evolve.
-
-The source boundary is deliberately flat:
-
-```text
-taskvine_backend.py       stable driver-side interface
-_task_runtime.py          private worker-side process/combine bodies
-_vinegraph_context.py     private VineGraph library initialization
-```
-
-There is no repository-named Python package or duplicated graphed source tree.
+The TaskVine executor implementation is maintained in
+[`JinZhou5042/graphed-executors`](https://github.com/JinZhou5042/graphed-executors/tree/taskvine/src/graphed_executors/taskvine_backend).
+Every workflow and test here imports its public `graphed_executors.taskvine_backend` interface;
+this repository does not keep a second executor implementation. A `graphed` `Plan` runs on
+[TaskVine](https://cctools.readthedocs.io/en/latest/taskvine/) through that backend's VineGraph
+interface.
 
 ## Architecture
 
@@ -42,7 +33,7 @@ There is no repository-named Python package or duplicated graphed source tree.
     combine(left, right)
     empty()
        |
-       | TaskVineExecutor.lower
+       | graphed_executors.taskvine_backend.TaskVineExecutor.lower
        v
   VineGraph workflow
        |
@@ -73,8 +64,8 @@ coarser than a Dask graph that exposes many array, schema, and I/O keys per part
 ## Requirements
 
 - Python 3.11 or newer;
-- `graphed >= 0.0.2`;
-- `graphed-executors >= 0.0.2`;
+- the graphed commit pinned in [`requirements.txt`](requirements.txt), matching the executor's API;
+- the TaskVine executor commit pinned in [`requirements.txt`](requirements.txt);
 - a TaskVine build that provides `ndcctools.taskvine.vine_graph`.
 
 ## Install VineGraph
@@ -107,18 +98,17 @@ covers local workflows, workers, HTCondor submission, factories, and execution p
 explicit Python pin above avoids an untested future Python version when `environment.yml` resolves
 its broad `python=3` requirement.
 
-## Install Graphed and this integration
+## Install Graphed and the experimental workflows
 
-For an existing Python environment, Graphed's Awkward and Parquet support is installed with
-`python -m pip install "graphed[awkward,parquet]"`. For this integration, clone the repository
-inside the active `cctools-dev` environment. Its requirements also install the Graphed executor
-and histogram libraries, Uproot, and the small set of development dependencies used here:
+Clone this experimental repository inside the active `cctools-dev` environment. Its requirements
+install the pinned Graphed core and TaskVine executor from their owning repositories, plus the
+histogram, Uproot, and development dependencies used by these workflows:
 
 ```bash
-git clone https://github.com/JinZhou5042/graphed-taskvine.git
+git clone https://github.com/cooperative-computing-lab/graphed-taskvine.git
 cd graphed-taskvine
 python -m pip install -r requirements.txt
-python -c "import graphed; from taskvine_backend import TaskVineExecutor"
+python -c "import graphed; from graphed_executors.taskvine_backend import TaskVineExecutor"
 ```
 
 ## Quick start
@@ -150,7 +140,7 @@ import graphed_histogram as gh
 from graphed import Session
 from graphed.awkward import AwkwardBackend, from_parquet
 
-from taskvine_backend import TaskVineExecutor
+from graphed_executors.taskvine_backend import TaskVineExecutor
 
 session = Session(AwkwardBackend())
 events = from_parquet(session, "events", [str(p) for p in parquet_paths])  # one file per partition
@@ -223,10 +213,9 @@ The executor accepts `graphed.core.execution.Plan` and returns
 non-empty plan runs or `.manager` is accessed. A caller-supplied manager remains caller-owned;
 otherwise `close()` or the context manager releases the executor-owned manager.
 
-The stable interface is `TaskVineExecutor.run(plan) -> ExecResult`, the lifecycle methods
-`close()`, `__enter__()`, and `__exit__()`, `last_stats`, `RunStats`, and
-`TaskVineWorkerError`. It directly implements graphed's existing `Executor` protocol; this
-repository does not define a competing executor interface.
+The executor's public interface is owned by `graphed-executors`: `TaskVineExecutor.run(plan) ->
+ExecResult`, `close()`, `__enter__()`, `__exit__()`, `last_stats`, `RunStats`, and
+`TaskVineWorkerError`. This repository uses that interface and does not define its own.
 
 `lower(plan)` remains available as an advanced graph-inspection and benchmarking hook, but it is
 not part of the compatibility contract. It returns the VineGraph workflow and root handle, and
@@ -351,8 +340,8 @@ In an environment that already contains a compatible TaskVine build:
 
 ```bash
 python -m pip install -r requirements.txt
-ruff check --target-version py311 --line-length 110 --select E,F,I,UP,B,SIM,C4,RUF --ignore E501 *.py tests examples
-ruff format --check --target-version py311 --line-length 110 *.py tests examples
+ruff check --target-version py311 --line-length 110 --select E,F,I,UP,B,SIM,C4,RUF --ignore E501 tests examples baselines
+ruff format --check --target-version py311 --line-length 110 tests examples baselines
 python -m pytest -q tests
 ```
 

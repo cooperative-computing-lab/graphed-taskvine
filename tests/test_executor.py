@@ -27,8 +27,7 @@ sys.path.insert(0, str(HERE.parent))
 import toy_plans  # noqa: E402
 from graphed.core.execution import SequentialRunner, StopReason  # noqa: E402
 from graphed_executors.local import ThreadExecutor  # noqa: E402
-
-from taskvine_backend import TaskVineExecutor  # noqa: E402
+from graphed_executors.taskvine_backend import TaskVineExecutor  # noqa: E402
 
 WORKER_MODE = os.environ.get("GTV_WORKER") == "1"
 

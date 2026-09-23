@@ -11,8 +11,7 @@ import graphed_histogram as gh
 import uproot
 from graphed import Session
 from graphed.awkward import AwkwardBackend, from_parquet
-
-from taskvine_backend import TaskVineExecutor
+from graphed_executors.taskvine_backend import TaskVineExecutor
 
 DATA_URL = "https://scikit-hep.org/uproot3/examples/Zmumu.root"
 BRANCHES = ["E1", "px1", "py1", "pz1", "Q1", "E2", "px2", "py2", "pz2", "Q2"]

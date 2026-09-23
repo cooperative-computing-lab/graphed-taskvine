@@ -52,8 +52,7 @@ from typing import Any
 
 import awkward as ak
 import numpy as np
-
-from taskvine_backend import TaskVineExecutor
+from graphed_executors.taskvine_backend import TaskVineExecutor
 
 # The 2017 trigger list from the original analysis's triggers.json (single "2017" entry).
 TRIGGERS_2017 = ["PFHT1050", "AK8PFJet400_TrimMass30", "AK8PFHT800_TrimMass50", "PFJet500", "AK8PFJet500"]
