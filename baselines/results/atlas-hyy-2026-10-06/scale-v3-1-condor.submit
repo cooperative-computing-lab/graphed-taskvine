@@ -1,0 +1,16 @@
+universe = vanilla
+executable = condor.sh
+arguments = "./poncho_package_run -e graphed-env.tar.gz  vine_worker -M jzhou24-hyy-scale-v3-1 -t 600 -C '''catalog.cse.nd.edu,backup-catalog.cse.nd.edu''' --parent-death -d all -o worker.1.log  --cores=$$([TARGET.Cpus]) --memory=$$([TARGET.Memory]) --disk=$$([TARGET.Disk/1024])  "
+transfer_input_files = vine_worker, poncho_package_run, graphed-env.tar.gz, 
+should_transfer_files = yes
+when_to_transfer_output = on_exit
+notification = never
+transfer_executable = true
+keep_claim_idle = 30
+log = condor.logfile
++JobMaxSuspendTime = 0
+getenv = true
+request_cpus = 16
+request_memory = 16000
+request_disk = 8192000
+queue

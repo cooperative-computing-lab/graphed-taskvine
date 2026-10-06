@@ -17,3 +17,4 @@ worker-*/
 *.root
 *.part
 *.tar.gz
+atlas-hyy-shards/

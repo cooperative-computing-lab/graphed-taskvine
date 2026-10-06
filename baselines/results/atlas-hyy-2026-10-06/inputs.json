@@ -1,0 +1,105 @@
+{
+  "release": "2025e-13tev-beta",
+  "dataset": "GamGam",
+  "n_files": 16,
+  "events": 36564144,
+  "parquet_bytes": 1257329519,
+  "files": [
+    {
+      "file": "ODEO_FEB2025_v0_GamGam_data15_periodD.GamGam.parquet",
+      "rows": 63195,
+      "bytes": 2197743,
+      "sha256": "fe0b6b10d97f5cb05b0a913014fe1c379ea383b913a7673e661b6edfbf16162c"
+    },
+    {
+      "file": "ODEO_FEB2025_v0_GamGam_data15_periodE.GamGam.parquet",
+      "rows": 529228,
+      "bytes": 18343596,
+      "sha256": "e35cedf819f288034b32fe718b289c84bfc1c9435cbb65af25030501258a88b7"
+    },
+    {
+      "file": "ODEO_FEB2025_v0_GamGam_data15_periodF.GamGam.parquet",
+      "rows": 352365,
+      "bytes": 12204429,
+      "sha256": "e8aba2a6a24f437c81a0bdebe1e77bf9e4fb4cbdf64c442814b0e0119f199239"
+    },
+    {
+      "file": "ODEO_FEB2025_v0_GamGam_data15_periodG.GamGam.parquet",
+      "rows": 826534,
+      "bytes": 28602323,
+      "sha256": "a057d9205b62f05ea2dc885f504d1ceb893fdda13c69b8e8e231797397dcc8e2"
+    },
+    {
+      "file": "ODEO_FEB2025_v0_GamGam_data15_periodH.GamGam.parquet",
+      "rows": 279169,
+      "bytes": 9652332,
+      "sha256": "143d2c2cd18f3942557ec06dde0d342ac9b1aff3fb2b1ea992431c6c277d2d21"
+    },
+    {
+      "file": "ODEO_FEB2025_v0_GamGam_data15_periodJ.GamGam.parquet",
+      "rows": 1527804,
+      "bytes": 52785862,
+      "sha256": "00ba2a9aebc570a7073affb4bc27d7e4eaaaf811d3ff966ee3a6fa6175eadc84"
+    },
+    {
+      "file": "ODEO_FEB2025_v0_GamGam_data16_periodA.GamGam.parquet",
+      "rows": 611028,
+      "bytes": 21104004,
+      "sha256": "4fc9a2019ae799ae3ae81d90755669525ec45ca73c118ca35627e1f465688e79"
+    },
+    {
+      "file": "ODEO_FEB2025_v0_GamGam_data16_periodB.GamGam.parquet",
+      "rows": 1892618,
+      "bytes": 65144110,
+      "sha256": "d94a79cae6eb9a886cd4c96c7b5006c7893b99af7501a9e59ce114be61ba5916"
+    },
+    {
+      "file": "ODEO_FEB2025_v0_GamGam_data16_periodC.GamGam.parquet",
+      "rows": 2368135,
+      "bytes": 81531218,
+      "sha256": "e67fe0f19f1385a6000047c10f25c63372efb53e5bcafa8fb23ecdf6e4e30110"
+    },
+    {
+      "file": "ODEO_FEB2025_v0_GamGam_data16_periodD.GamGam.parquet",
+      "rows": 4723215,
+      "bytes": 162365538,
+      "sha256": "50c1fe5837bc8e1140fd1e132e3ede999b458f65a0050d66e9fe2a5ca00a7550"
+    },
+    {
+      "file": "ODEO_FEB2025_v0_GamGam_data16_periodE.GamGam.parquet",
+      "rows": 1527637,
+      "bytes": 52560988,
+      "sha256": "64a7f4e8f0a7a6d5dec0a8ec709e88841dd891e113f4705c56d0ffbefc0dc22c"
+    },
+    {
+      "file": "ODEO_FEB2025_v0_GamGam_data16_periodF.GamGam.parquet",
+      "rows": 3482240,
+      "bytes": 119606428,
+      "sha256": "4c714e04322242df12f5f373542b39b19531669726cb461bf50ad56aac394b28"
+    },
+    {
+      "file": "ODEO_FEB2025_v0_GamGam_data16_periodG.GamGam.parquet",
+      "rows": 3914396,
+      "bytes": 134436776,
+      "sha256": "d71a1be130c431ce76ddd4ae321bfb00e7f2fdd078ff5f35c4c49449a80eb7f8"
+    },
+    {
+      "file": "ODEO_FEB2025_v0_GamGam_data16_periodI.GamGam.parquet",
+      "rows": 5939117,
+      "bytes": 204035195,
+      "sha256": "fc55514d13517bbbf7df56da186de3678116063cf282e87ce6bfecfa09272a5c"
+    },
+    {
+      "file": "ODEO_FEB2025_v0_GamGam_data16_periodK.GamGam.parquet",
+      "rows": 2244215,
+      "bytes": 77093999,
+      "sha256": "9055ff2f4974e0f406d781a8d2af97830533e42ec294837edde91dff8d5ba757"
+    },
+    {
+      "file": "ODEO_FEB2025_v0_GamGam_data16_periodL.GamGam.parquet",
+      "rows": 6283248,
+      "bytes": 215664978,
+      "sha256": "87af4a2ecd992734b08216e4edcb3ea924aa55a6d33e44e30282835446798df6"
+    }
+  ]
+}

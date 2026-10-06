@@ -1,0 +1,7 @@
+START scale-v3-1-driver
+DONE scale-v3-1-driver
+VERIFIED scale-v3-1 16 cores
+START scale-v3-40-driver
+DONE scale-v3-40-driver
+VERIFIED scale-v3-40 640 cores
+ALL COMPARISONS PASSED

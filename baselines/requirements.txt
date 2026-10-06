@@ -1,2 +1,3 @@
 -r ../requirements.txt
 coffea==2026.9.0
+atlasopenmagic==1.10.1

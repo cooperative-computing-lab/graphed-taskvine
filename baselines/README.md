@@ -19,13 +19,19 @@ Install `python -m pip install -r baselines/requirements.txt` in the VineGraph e
 and a standard Python process pool. It reads the same prepared flat Parquet files and applies
 exactly the existing ATLAS example's cuts and histogram definition. No Dask scheduler is used.
 
-Prepare the data with `examples.atlas_hyy.prepare_data`, then compare both paths on 16 processes:
+Prepare the original ATLAS dataset (about 9.86 GB of ROOT files), then compare both paths on 16 processes:
 
 ```bash
 export PYTHONNOUSERSITE=1 OPENBLAS_NUM_THREADS=1 OMP_NUM_THREADS=1 MKL_NUM_THREADS=1
+export NPY_DISABLE_CPU_FEATURES=X86_V4,AVX512_ICL,AVX512_SPR
+python -c "from pathlib import Path; from examples.atlas_hyy import prepare_data; prepare_data(Path('atlas-hyy-data'))"
 python -m baselines.atlas_hyy_coffea --data-dir atlas-hyy-data --workers 16 --output coffea.json
 python -m baselines.atlas_hyy_graphed --data-dir atlas-hyy-data --cores 16 --output graphed.json
 ```
+
+For this NumPy 2.4 environment, the SIMD setting keeps the AVX-512 workers on the same
+calculation path as the AVX2 manager. Without it, a few float32 boundary events moved bins
+in the cluster run; see the [measured results](results/atlas-hyy-2026-10-06/README.md).
 
 Both JSON files contain all 62 histogram bins (including underflow and overflow). Compare
 `bins_with_flow` for exact equality. Timings exclude downloading and ROOT-to-Parquet conversion;
@@ -55,7 +61,8 @@ poncho_package_create "$CONDA_PREFIX" graphed-env.tar.gz
 vine_factory -T condor -M graphed-hyy-scale --min-workers 40 --max-workers 40 \
   --workers-per-cycle 40 --cores 16 --memory 16000 --disk 8000 \
   --poncho-env graphed-env.tar.gz --env PYTHONNOUSERSITE=1 \
-  --env OPENBLAS_NUM_THREADS=1 --env OMP_NUM_THREADS=1 --env MKL_NUM_THREADS=1
+  --env OPENBLAS_NUM_THREADS=1 --env OMP_NUM_THREADS=1 --env MKL_NUM_THREADS=1 \
+  --env NPY_DISABLE_CPU_FEATURES=X86_V4,AVX512_ICL,AVX512_SPR
 ```
 
 Stop the Factory after the run. Input paths must be accessible on the workers. `run_s` includes

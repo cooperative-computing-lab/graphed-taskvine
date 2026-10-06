@@ -1,0 +1,41 @@
+000 (431894.000.000) 2026-10-05 23:47:30 Job submitted from host: <10.32.88.70:9618?addrs=10.32.88.70-9618&alias=condorfe.crc.nd.edu&noUDP&sock=schedd_3248_6fb2>
+...
+040 (431894.000.000) 2026-10-05 23:51:32 Started transferring input files
+	Transferring to host: <10.32.93.196:9618?addrs=10.32.93.196-9618&alias=qa-h100-002.crc.nd.edu&noUDP&sock=slot1_9_256700_1f40_14>
+...
+040 (431894.000.000) 2026-10-05 23:51:34 Finished transferring input files
+...
+001 (431894.000.000) 2026-10-05 23:51:35 Job executing on host: <10.32.93.196:9618?addrs=10.32.93.196-9618&alias=qa-h100-002.crc.nd.edu&noUDP&sock=startd_2399_17ca>
+	SlotName: slot1_9@qa-h100-002.crc.nd.edu
+	AvailableGPUs = {  }
+	CondorScratchDir = "/var/condor/execute/dir_718662"
+	Cpus = 16
+	Disk = 8193699
+	GPUs = 0
+	Memory = 16000
+...
+006 (431894.000.000) 2026-10-05 23:51:44 Image size of job updated: 1737244
+	1697  -  MemoryUsage of job (MB)
+	1737088  -  ResidentSetSize of job (KB)
+...
+006 (431894.000.000) 2026-10-05 23:54:46 Image size of job updated: 3987040
+	3358  -  MemoryUsage of job (MB)
+	3438344  -  ResidentSetSize of job (KB)
+...
+004 (431894.000.000) 2026-10-05 23:54:47 Job was evicted.
+	(0) CPU times
+		Usr 0 00:31:06, Sys 0 00:09:41  -  Run Remote Usage
+		Usr 0 00:00:00, Sys 0 00:00:00  -  Run Local Usage
+	0  -  Run Bytes Sent By Job
+	855820416  -  Run Bytes Received By Job
+	Partitionable Resources :      Usage  Request Allocated 
+	   Cpus                 :       9.61       16        16 
+	   Disk (KB)            : 3422267     8192000   8193699 
+	   GPUs                 :                             0 
+	   Memory (MB)          :    3358       16000     16000 
+	   TimeExecute (s)      :     191                       
+	   TimeSlotBusy (s)     :     195                       
+...
+009 (431894.000.000) 2026-10-05 23:54:47 Job was aborted.
+	via condor_rm (by user jzhou24)
+...

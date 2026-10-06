@@ -1,0 +1,6 @@
+export PYTHONNOUSERSITE=1 OPENBLAS_NUM_THREADS=1 OMP_NUM_THREADS=1 MKL_NUM_THREADS=1
+export NPY_DISABLE_CPU_FEATURES=X86_V4,AVX512_ICL,AVX512_SPR
+
+/tmp/graphed-taskvine-check/env/bin/python -m baselines.atlas_hyy_graphed --data-dir /groups/dthain/users/jzhou24/graphed-dirs/graphed-taskvine/atlas-hyy-shards --output /tmp/graphed-taskvine-check/results/scale-v3-1.json --backend taskvine --cores 16 --manager-name jzhou24-hyy-scale-v3-1 --wait-for-workers 1 --port 9123
+
+/tmp/graphed-taskvine-check/env/bin/vine_factory -T condor -M jzhou24-hyy-scale-v3-1 --min-workers 1 --max-workers 1 --workers-per-cycle 1 --cores 16 --memory 16000 --disk 8000 --timeout 600 --factory-timeout 180 --factory-period 5 --poncho-env /tmp/graphed-taskvine-check/graphed-env.tar.gz --scratch-dir /tmp/graphed-taskvine-check/factory-scale-v3-1 --debug-workers --env PYTHONNOUSERSITE=1 --env OPENBLAS_NUM_THREADS=1 --env OMP_NUM_THREADS=1 --env MKL_NUM_THREADS=1 --env NPY_DISABLE_CPU_FEATURES=X86_V4,AVX512_ICL,AVX512_SPR
