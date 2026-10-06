@@ -354,3 +354,9 @@ GTV_WORKER=1 python -m pytest -q tests/test_executor.py
 ## License
 
 MIT. See [LICENSE](LICENSE).
+
+### Non-Dask Coffea comparison
+
+The [Coffea virtual-array baseline and Factory scale-up commands](baselines/README.md)
+compare the ATLAS H→γγ analysis on identical Parquet inputs, with exact histogram-bin checks.
+The baseline uses a Coffea processor and a Python process pool, without a Dask scheduler.

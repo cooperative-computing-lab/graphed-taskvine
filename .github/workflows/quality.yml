@@ -17,10 +17,10 @@ jobs:
           python-version: ${{ matrix.python-version }}
           cache: pip
       - name: Install
-        run: python -m pip install -r requirements.txt
+        run: python -m pip install -r baselines/requirements.txt
       - name: Lint
-        run: ruff check --target-version py311 --line-length 110 --select E,F,I,UP,B,SIM,C4,RUF --ignore E501 *.py tests examples
+        run: ruff check --target-version py311 --line-length 110 --select E,F,I,UP,B,SIM,C4,RUF --ignore E501 tests examples baselines
       - name: Format
-        run: ruff format --check --target-version py311 --line-length 110 *.py tests examples
+        run: ruff format --check --target-version py311 --line-length 110 tests examples baselines
       - name: Contract tests
-        run: python -m pytest -q tests/test_contract.py
+        run: python -m pytest -q tests/test_contract.py tests/test_coffea_baseline.py
