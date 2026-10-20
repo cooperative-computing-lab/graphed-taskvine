@@ -7,7 +7,7 @@ on another worker.
 
 The backend is `vine_graph_runner` from
 [`graphed_executors.vine_graph_backend`](https://github.com/JinZhou5042/graphed-executors/tree/vine-graph/src/graphed_executors/vine_graph_backend).
-This repository holds examples, baselines, and measurements, and no backend code of its own.
+This repository holds examples and benchmarks, and no backend code of its own.
 
 ## 1. Install
 
@@ -87,7 +87,7 @@ vine_graph setting, such as `max-retries=3`), and `--run-info` (where the manage
 
 DV5 also needs `fastjet`, `vector`, `scipy`, and a development fork of uproot; the top of
 [`examples/dv5.py`](examples/dv5.py) explains how to install them. To run ATLAS as 10,240 tasks instead of 16, see
-[`baselines/README.md`](baselines/README.md).
+[`benchmarks/README.md`](benchmarks/README.md).
 
 ## Use it in your own analysis
 
@@ -107,7 +107,7 @@ the driver as its original type, with the worker's traceback attached.
 
 - [`RESULTS.md`](RESULTS.md): how a Plan becomes TaskVine tasks, what the backend guarantees, and measured
   comparisons with Dask and coffea (ATLAS 5.3x faster, DV5 2.6x, identical results).
-- [`baselines/`](baselines/): the Dask and coffea pipelines used for those comparisons.
+- [`benchmarks/`](benchmarks/): the Dask and coffea pipelines used for those comparisons.
 - The [vine_graph guide](https://github.com/JinZhou5042/cctools/blob/vine-graph/doc/manuals/taskvine/vine-graph.md)
   covers workers, factories, and settings.
 

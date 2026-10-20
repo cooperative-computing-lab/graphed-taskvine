@@ -82,7 +82,7 @@ bodies should be safe to retry because TaskVine may re-execute work after worker
 Leaf results depend on the CPU that computes them when the analysis uses floating-point math whose
 library picks code by CPU features: on a cluster with AVX-512 and AVX2 machines, an event near a cut
 or a bin edge may land differently from one run to the next. Compare such histograms within a small
-tolerance, or pin numpy's code paths as [`baselines/README.md`](baselines/README.md) does.
+tolerance, or pin numpy's code paths as [`benchmarks/README.md`](benchmarks/README.md) does.
 
 ## Integration interface
 
@@ -114,8 +114,8 @@ external writes must be idempotent or content-addressed.
 Each example here runs two ways: through vine_graph, and through a plain local
 Dask/coffea-style pipeline doing the same selection on the same files. CMS dimuon and ATLAS H→γγ
 have their traditional side in this repo, at
-[`baselines/cms_dimuon_dask.py`](baselines/cms_dimuon_dask.py) and
-[`baselines/atlas_hyy_dask.py`](baselines/atlas_hyy_dask.py): plain `uproot.dask` /
+[`benchmarks/cms_dimuon_dask.py`](benchmarks/cms_dimuon_dask.py) and
+[`benchmarks/atlas_hyy_dask.py`](benchmarks/atlas_hyy_dask.py): plain `uproot.dask` /
 `dask.dataframe`, no coffea, no cluster. DV5's traditional side is the original, unmodified
 `ecf_calculator.py` from
 [`JinZhou5042/sc26-dagvine-reproducibility`](https://github.com/JinZhou5042/sc26-dagvine-reproducibility).
@@ -139,7 +139,7 @@ All three ran on one machine, locally, no distributed factory, on the earlier Vi
 
 Single 2,304-event file, opposite-sign muon pairs, invariant mass, 60-bin 60–120 GeV histogram.
 [`examples/cms_dimuon.py`](examples/cms_dimuon.py) vs.
-[`baselines/cms_dimuon_dask.py`](baselines/cms_dimuon_dask.py) (`uproot.dask` + plain
+[`benchmarks/cms_dimuon_dask.py`](benchmarks/cms_dimuon_dask.py) (`uproot.dask` + plain
 `dask.compute`, 5 partitions to match graphed's `steps_per_file=5`):
 
 | | graphed + TaskVine | traditional dask-awkward |
@@ -159,7 +159,7 @@ performance case.
 
 16 real ATLAS Open Data ROOT files (~9.86 GB), diphoton selection and mass reconstruction, 60-bin
 100–160 GeV histogram. [`examples/atlas_hyy.py`](examples/atlas_hyy.py) vs.
-[`baselines/atlas_hyy_dask.py`](baselines/atlas_hyy_dask.py) (`dask.dataframe.read_parquet` over
+[`benchmarks/atlas_hyy_dask.py`](benchmarks/atlas_hyy_dask.py) (`dask.dataframe.read_parquet` over
 the same per-file flat Parquets, `scheduler="processes"`, 4 workers, matching the 4 cores graphed's worker
 used):
 
@@ -223,6 +223,6 @@ cross-microarchitecture fastjet drift from the multi-machine condor runs below s
 
 ### Non-Dask Coffea comparison
 
-The [Coffea virtual-array baseline and Factory scale-up commands](baselines/README.md)
+The [Coffea virtual-array baseline and Factory scale-up commands](benchmarks/README.md)
 compare the ATLAS H→γγ analysis on identical Parquet inputs, with exact histogram-bin checks.
 The baseline uses a Coffea processor and a Python process pool, without a Dask scheduler.

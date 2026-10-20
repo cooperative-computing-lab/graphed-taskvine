@@ -8,7 +8,7 @@ from graphed_executors.local import ThreadExecutor
 
 pytest.importorskip("coffea")
 
-from baselines.atlas_hyy_coffea import run
+from benchmarks.atlas_hyy_coffea import run
 from examples.atlas_hyy import build_plan
 
 

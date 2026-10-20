@@ -9,7 +9,7 @@ used because the data here is already flattened to fixed leading-two-photon colu
 is an ordinary flat/columnar table, not a jagged array; dask.dataframe is the natural traditional
 tool for that shape and mirrors the row-wise vectorized style a physicist would actually write.
 
-    python -m baselines.atlas_hyy_dask --data-dir examples/atlas-hyy-data
+    python -m benchmarks.atlas_hyy_dask --data-dir examples/atlas-hyy-data
 """
 
 import argparse

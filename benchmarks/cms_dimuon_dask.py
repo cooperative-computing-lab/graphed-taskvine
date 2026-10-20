@@ -7,8 +7,8 @@ pipeline instead of graphed on vine_graph: no distributed cluster, no vine_graph
 requirements; run it with an environment that has dask-awkward and uproot installed (this repo's
 graphed env does not include dask-awkward, since the executor and its examples never need it).
 
-    python baselines/cms_dimuon_dask.py
-    python baselines/cms_dimuon_dask.py --partitions 5   # match graphed's steps_per_file=5
+    python benchmarks/cms_dimuon_dask.py
+    python benchmarks/cms_dimuon_dask.py --partitions 5   # match graphed's steps_per_file=5
 """
 
 import argparse

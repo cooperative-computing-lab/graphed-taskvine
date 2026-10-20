@@ -1,4 +1,4 @@
-# HEP experiments and baselines
+# Benchmarks
 
 This directory is the experimental area for new HEP workflows, comparison pipelines, benchmark
 inputs, and measured results. Keep each result next to the workflow and command that produced it,
@@ -14,7 +14,7 @@ do not copy backend code into this repository.
 
 ## Coffea virtual-array baseline and scale-up
 
-Install `python -m pip install -r baselines/requirements.txt` in the vine_graph environment.
+Install `python -m pip install -r benchmarks/requirements.txt` in the vine_graph environment.
 `atlas_hyy_coffea.py` uses a Coffea `ProcessorABC`, `NanoEventsFactory` in `virtual` mode,
 and a standard Python process pool. It reads the same prepared flat Parquet files and applies
 exactly the existing ATLAS example's cuts and histogram definition. No Dask scheduler is used.
@@ -25,8 +25,8 @@ Prepare the original ATLAS dataset (about 9.86 GB of ROOT files), then compare b
 export PYTHONNOUSERSITE=1 OPENBLAS_NUM_THREADS=1 OMP_NUM_THREADS=1 MKL_NUM_THREADS=1
 export NPY_DISABLE_CPU_FEATURES=X86_V4,AVX512_ICL,AVX512_SPR
 python -c "from pathlib import Path; from examples.atlas_hyy import prepare_data; prepare_data(Path('atlas-hyy-data'))"
-python -m baselines.atlas_hyy_coffea --data-dir atlas-hyy-data --workers 16 --output coffea.json
-python -m baselines.atlas_hyy_graphed --data-dir atlas-hyy-data --cores 16 --output graphed.json
+python -m benchmarks.atlas_hyy_coffea --data-dir atlas-hyy-data --workers 16 --output coffea.json
+python -m benchmarks.atlas_hyy_graphed --data-dir atlas-hyy-data --cores 16 --output graphed.json
 ```
 
 For this NumPy 2.4 environment, the SIMD setting keeps the AVX-512 workers on the same
@@ -41,7 +41,7 @@ For more tasks, split the same events into disjoint Parquet files. This avoids r
 an entire original file for each small logical slice. The manifest records every source entry range:
 
 ```bash
-python -m baselines.prepare_atlas_shards --data-dir atlas-hyy-data \
+python -m benchmarks.prepare_atlas_shards --data-dir atlas-hyy-data \
   --output-dir atlas-hyy-shards --shards-per-file 640
 ```
 
@@ -49,7 +49,7 @@ The 16-file dataset produces 10,240 leaf tasks and 10,239 combine tasks. Use thi
 directory for every runner in the scale-up comparison. Start the manager:
 
 ```bash
-python -m baselines.atlas_hyy_graphed --data-dir atlas-hyy-shards --backend vine_graph \
+python -m benchmarks.atlas_hyy_graphed --data-dir atlas-hyy-shards --backend vine_graph \
   --wait-for-workers 40 --manager-name graphed-hyy-scale --output scale40.json
 ```
 
