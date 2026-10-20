@@ -107,7 +107,8 @@ the driver as its original type, with the worker's traceback attached.
 ## More
 
 - [`RESULTS.md`](RESULTS.md): how a Plan becomes TaskVine tasks, what the backend guarantees, and measured
-  comparisons with Dask and coffea (ATLAS 5.3x faster, DV5 2.6x, identical results).
+  comparisons with Dask and coffea (ATLAS 5.3x faster, DV5 2.6x, identical results), and runs of up to 81,919
+  tasks and 110 GB on HTCondor.
 - [`benchmarks/`](benchmarks/): the Dask and coffea pipelines used for those comparisons.
 - The [vine_graph guide](https://github.com/JinZhou5042/cctools/blob/vine-graph/doc/manuals/taskvine/vine-graph.md)
   covers workers, factories, and settings.

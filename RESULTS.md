@@ -130,10 +130,32 @@ byte-identical to the DAGVine/SC26 hero-run reference.
 | [ATLAS H→γγ](README.md#2-quick-check) | 16 files, 9.86 GB | 9.9 s (5.35 s execution) | 52.25 s | ~5.3x | exact match |
 | [DV5](#dv5-run-it-yourself) | 800 files, 22 GB | 499.7 s (~8.3 min) | 1,316.1 s (~21.9 min) | ~2.6x | bit-for-bit identical |
 
-All three ran on one machine, locally, no distributed factory, on the earlier VineGraph executor
-(2026-10-05). On vine_graph with HTCondor workers through a factory (2026-10-20): ATLAS H→γγ over
-10,240 Parquet shards in 6.6 s of makespan (251,659 events, exact), and DV5 over all 800 files in
-35 s (275 events).
+All three ran on one machine, locally, with no factory, on the earlier VineGraph executor that came before
+vine_graph (2026-10-05; the DV5 run dates from 2026-09-16). They have not been measured again with the current
+backend. The [scale runs](#scale-on-htcondor) below use the current code.
+
+### Scale on HTCondor
+
+Measured on 2026-10-20 with the current code: cctools `vine-graph` at `ec72f96f5`, graphed-executors `vine-graph`
+at `dd2238d`, and this repository at `c4ed386`. Workers came from a factory on the Notre Dame CRC HTCondor pool,
+4 cores and 8 GB each, and read their inputs from a shared file system. Each run waited for 40 workers and took
+the workers the pool gave it:
+
+| workflow | data | tasks | workers (cores) | run | result |
+|---|---|---|---|---|---|
+| DV5 | 4,000 ROOT files, 110 GB (5 copies of `hgg_0`), 4 steps per file | 31,999 (16,000 + 15,999) | 48 (192) | 178 s, build 2.1 s | 1,375 events = 5 × 275, exact |
+| ATLAS H→γγ | 16 files cut into 40,960 Parquet shards | 81,919 (40,960 + 40,959) | 41 (164) | 47 s, makespan 39.2 s | 251,659 events, exact |
+
+Neither run needed a recovery task, and the driver's peak memory was 540 MB (DV5) and 870 MB (ATLAS). Commands:
+
+```bash
+python -m examples.dv5 --data-dir hgg_0 hgg_1 hgg_2 hgg_3 hgg_4 --files 0 --steps-per-file 4 \
+  --distributed --manager-name my-run --port 9050:9060 --workers 40
+python -m benchmarks.prepare_atlas_shards --data-dir atlas-hyy-data --output-dir atlas-hyy-shards-2560 \
+  --shards-per-file 2560
+python -m benchmarks.atlas_hyy_graphed --data-dir atlas-hyy-shards-2560 --backend vine_graph \
+  --wait-for-workers 40 --manager-name my-run --port 9050 --output atlas.json
+```
 
 ### CMS dimuon (toy scale)
 
@@ -197,9 +219,8 @@ python -m examples.dv5 --data-dir dv5-data --files 5
 By default this downloads the ~22 GB Zenodo archive on first use and processes the first 5 of its
 800 files. Point `--data-dir` at an existing extraction (for example a previously downloaded
 `hgg_0`) and pass `--files 0` to reproduce the full-dataset numbers below with local execution.
-`--distributed` runs it on TaskVine workers like the other examples: on 100-400 HTCondor workers
-through a factory, the full 800-file dataset (1,599 tasks) took 35 s and selected the same 275
-events (2026-10-20). The local numbers below were produced with the underlying analysis run
+`--distributed` runs it on TaskVine workers like the other examples; [Scale on HTCondor](#scale-on-htcondor)
+runs it on five copies of the dataset. The local numbers below were produced with the underlying analysis run
 directly against a real `vine_worker`.
 
 Both systems ran the full 22 GB, 800-file `hgg_0` dataset locally on the same machine, capped at
@@ -217,8 +238,8 @@ Both systems ran the full 22 GB, 800-file `hgg_0` dataset locally on the same ma
 
 Correctness: both sides selected the same 275 of 275 events, and all 39 compared leaves
 (`Color_Ring`, 32 ECFs, `msoftdrop`, `pt`, `btag_ak4s`, `pn_HbbvsQCD`, `pn_md`, `matching`) matched
-with `max_rel_diff = 0` (`compare.py`). Both ran on the same CPU this time, so none of the
-cross-microarchitecture fastjet drift from the multi-machine condor runs below shows up.
+with `max_rel_diff = 0` (`compare.py`). Both ran on the same CPU, so no floating-point drift between CPU
+types shows up.
 
 
 ### Non-Dask Coffea comparison
