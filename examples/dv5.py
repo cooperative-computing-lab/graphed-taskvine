@@ -39,6 +39,8 @@ is no way to fetch just a handful of files). Point ``--data-dir`` at an existing
 files (for example a previously extracted ``hgg_0``) to skip the download entirely:
 
     python -m examples.dv5 --data-dir /path/to/hgg_0 --files 5
+
+``--data-dir`` takes several directories, and ``--steps-per-file N`` splits each file into ``N`` tasks.
 """
 
 from __future__ import annotations
@@ -539,15 +541,16 @@ def main():
     parser = argparse.ArgumentParser(
         description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter
     )
-    parser.add_argument("--data-dir", type=Path, default=Path("dv5-data"))
-    parser.add_argument("--files", type=int, default=5, help="first N ROOT files to process; 0 = all")
+    parser.add_argument(
+        "--data-dir", type=Path, nargs="+", default=[Path("dv5-data")], help="directories of ROOT files"
+    )
+    parser.add_argument("--files", type=int, default=5, help="first N ROOT files of each directory; 0 = all")
+    parser.add_argument("--steps-per-file", type=int, default=1, help="tasks each file is split into")
     vine_options.add_arguments(parser, "graphed-dv5")
     args = parser.parse_args()
     # Tasks run in sandboxes of their own, so the paths they read are absolute.
-    args.data_dir = args.data_dir.resolve()
-
-    files = prepare_data(args.data_dir, args.files)
-    plan, info = build_plan(files)
+    files = [f for directory in args.data_dir for f in prepare_data(directory.resolve(), args.files)]
+    plan, info = build_plan(files, steps_per_file=args.steps_per_file)
 
     # The plan holds instances of classes defined here, which workers load by module name: they get this
     # package (examples) in their sandbox, and main() runs as examples.dv5, never as __main__.

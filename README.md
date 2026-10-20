@@ -86,8 +86,9 @@ vine_graph setting, such as `max-retries=3`), and `--run-info` (where the manage
 | DV5 | 800 ROOT files, 22 GB, downloaded on first run | `python -m examples.dv5 --files 5` (`--files 0` for all 800) | all 800 files: `selected events: 275`, `process/combine tasks: 800/799` |
 
 DV5 also needs `fastjet`, `vector`, `scipy`, and a development fork of uproot; the top of
-[`examples/dv5.py`](examples/dv5.py) explains how to install them. To run ATLAS as 10,240 tasks instead of 16, see
-[`benchmarks/README.md`](benchmarks/README.md).
+[`examples/dv5.py`](examples/dv5.py) explains how to install them. For more data and more tasks, DV5 takes several
+directories and splits each file into steps (`--data-dir hgg_0 hgg_1 ... --steps-per-file 4`), and ATLAS can be cut
+into shards (see [`benchmarks/README.md`](benchmarks/README.md)).
 
 ## Use it in your own analysis
 
