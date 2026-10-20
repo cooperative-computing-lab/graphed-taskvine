@@ -114,7 +114,7 @@ def test_open_once_and_order(runner):
 def test_worker_error_reaches_driver_intact(runner):
     with pytest.raises(ValueError, match="boom at entry 3") as info:
         runner.run(toy_plans.failing_plan(6))
-    assert any("TaskVine worker" in note for note in getattr(info.value, "__notes__", []))
+    assert any("raised by task" in note and "Traceback" in note for note in getattr(info.value, "__notes__", []))
 
 
 def test_adaptive_rounds(runner):
