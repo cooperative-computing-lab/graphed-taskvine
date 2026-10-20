@@ -2,7 +2,7 @@
 
 Same 2,304-event Zmumu.root selection as examples/cms_dimuon.py (opposite-sign muon pair,
 invariant mass by hand, 60-bin 60-120 GeV histogram), computed with a plain local dask-awkward
-pipeline instead of graphed + TaskVineExecutor: no distributed cluster, no VineGraph, just
+pipeline instead of graphed on vine_graph: no distributed cluster, no vine_graph, just
 ``uproot.dask`` + ``dask.compute(scheduler="threads")``. Not wired into the package's own
 requirements; run it with an environment that has dask-awkward and uproot installed (this repo's
 graphed env does not include dask-awkward, since the executor and its examples never need it).

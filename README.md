@@ -3,12 +3,11 @@
 This repository is the experimental home for Graphed + TaskVine HEP workflows, comparison
 pipelines, baselines, and measured results. New experiments belong under [`baselines/`](baselines/).
 
-The TaskVine executor is maintained in
-[`JinZhou5042/graphed-executors`](https://github.com/JinZhou5042/graphed-executors/tree/vine-graph/src/graphed_executors/taskvine_backend)
-(branch `vine-graph`). Every workflow and test here imports its public
-`graphed_executors.taskvine_backend.TaskVineExecutor`; this repository keeps no executor of its own.
 A `graphed` `Plan` runs on [TaskVine](https://cctools.readthedocs.io/en/latest/taskvine/) through
-vine_graph (`ndcctools.taskvine.vine_graph`), the CCTools task-graph executor.
+vine_graph (`ndcctools.taskvine.vine_graph`), the CCTools task-graph executor, with
+`vine_graph_runner` from
+[`graphed_executors.vine_graph_backend`](https://github.com/JinZhou5042/graphed-executors/tree/vine-graph/src/graphed_executors/vine_graph_backend)
+(graphed-executors, branch `vine-graph`). This repository keeps no backend code of its own.
 
 ## Architecture
 
@@ -33,7 +32,7 @@ vine_graph (`ndcctools.taskvine.vine_graph`), the CCTools task-graph executor.
     combine(left, right)
     empty()
        |
-       | TaskVineExecutor.run: graphed-executors' SubmitRunner
+       | vine_graph_runner(executor).run: graphed-executors' SubmitRunner
        v
   vine_graph Executor (a TaskVine manager)
        |
@@ -107,7 +106,7 @@ Inside the active `cctools-dev` environment:
 git clone https://github.com/cooperative-computing-lab/graphed-taskvine.git
 cd graphed-taskvine
 python -m pip install -r requirements.txt
-python -c "import graphed; from graphed_executors.taskvine_backend import TaskVineExecutor"
+python -c "import graphed; from graphed_executors.vine_graph_backend import vine_graph_runner"
 ```
 
 Workers need the same packages: `graphed`, `graphed-executors`, `graphed-histogram`, and whatever
@@ -145,7 +144,8 @@ import graphed_histogram as gh
 from graphed import Session
 from graphed.awkward import AwkwardBackend, from_parquet
 
-from graphed_executors.taskvine_backend import TaskVineExecutor
+from graphed_executors.vine_graph_backend import vine_graph_runner
+from ndcctools.taskvine import vine_graph as vg
 
 session = Session(AwkwardBackend())
 events = from_parquet(session, "events", [str(p) for p in parquet_paths])  # one file per partition
@@ -161,8 +161,8 @@ histogram = gh.boost.Histogram(bh.axis.Regular(60, 100.0, 160.0), storage=bh.sto
 histogram.fill(mass)
 plan = gh.plan({"diphoton_mass": histogram})
 
-with TaskVineExecutor(manager_name="graphed-hyy", wait_for_workers=1) as executor:
-    result = executor.run(plan)
+with vg.Executor(9123, "graphed-hyy") as executor, vine_graph_runner(executor) as runner:
+    result = runner.run(plan)
 ```
 
 To run the same plan on TaskVine workers, start workers that connect to the manager by name, by
@@ -194,8 +194,9 @@ Every example takes the same options ([`examples/vine_options.py`](examples/vine
   bit what graphed's local executors return from the same leaf values. A fixed plan with `N`
   partitions performs exactly `N - 1` combines.
 - Worker exceptions are re-raised on the driver as their original type when serializable, with the
-  worker's traceback attached as an exception note; otherwise `TaskVineWorkerError` carries it.
-- Relative local partition paths that exist on the driver are resolved before tasks run.
+  worker's traceback attached as an exception note; otherwise `VineGraphWorkerError` carries it.
+- Each task runs in a sandbox of its own, so partitions name their files by absolute path (the
+  examples resolve `--data-dir`).
 - Adaptive plans (`next_tasks`) run batch by batch on the same workers: `ExecContext` is updated as
   partitions complete, and `StopCondition` is checked as they do, so a run may stop inside a batch.
 - A worker that is lost (evicted, killed, out of memory) costs only the tasks it held: vine_graph
@@ -214,40 +215,31 @@ tolerance, or pin numpy's code paths as [`baselines/README.md`](baselines/README
 ## Integration interface
 
 ```python
-TaskVineExecutor(
-    manager=None,                 # an open vine_graph.Executor to run on; the caller keeps owning it
-    manager_name="graphed-taskvine",
-    port=(9100, 9199),            # a port, or a range
-    local=False,                  # run each task in this process, without a manager or workers
-    wait_for_workers=0,
-    work_dir=None,                # directory of file results (default ./vine-graph-work)
-    ship=(),                      # files or directories every worker gets, importable there
-    params=None,                  # vine_graph settings, such as {"max-retries": 3}
-    run_info_path=None,           # where the manager writes its logs
-    run_info_template=None,
-    monitor=None, retries=3, max_in_flight=2, services=None, control=None,  # SubmitRunner options
-    libcores=None,                # accepted and ignored: each worker core runs one task
-)
+from ndcctools.taskvine import vine_graph as vg
+from graphed_executors.vine_graph_backend import vine_graph_runner
+
+with vg.Executor(port, name, **options) as executor, vine_graph_runner(executor) as runner:
+    result = runner.run(plan)
 ```
 
-The executor accepts `graphed.core.execution.Plan` (and graphed-executors' staged `DurablePlanV2`)
-and returns `graphed.core.execution.ExecResult`. The manager is created when the first plan with
-tasks runs, or when `.manager` is read: an empty plan returns `plan.empty()`, and a plan whose task
-keys repeat raises `ValueError`, without starting one. `close()` or the context manager releases an
-executor-owned manager.
-
-The public interface is owned by `graphed-executors`: `run(plan) -> ExecResult`, `close()`,
-`__enter__()`, `__exit__()`, `manager`, `port`, `last_stats` (a `RunStats` with `n_tasks`,
-`n_graph_nodes`, `n_rounds`, `lower_s`, `vine_run_s`, `total_s`, and `rounds`), and
-`TaskVineWorkerError`. `lower(plan)` is an inspection hook: it returns the same reduction as a
-vine_graph `Graph` and its root node, which `executor.manager.run(graph, [root])` computes.
+- `vg.Executor` is the TaskVine manager, which the caller creates and closes. Its options include
+  `local=True` (run each task in this process, without workers), `library_files` (files or
+  directories every worker gets in its sandbox, importable there), `params` (vine_graph settings,
+  such as `{"wait-for-workers": 10, "max-retries": 3}`), and `run_info_path` (the manager's logs).
+  `executor.stats()` reports the makespan, the tasks, and the recovery tasks.
+- `vine_graph_runner(executor, *, monitor=None, retries=3, max_in_flight=2, services=None,
+  control=None)` returns graphed-executors' `SubmitRunner` over `VineGraphBackend`, a graphed
+  `Executor`: `run(plan)` takes a `Plan` or a staged `DurablePlanV2` and returns an `ExecResult`.
+  Closing the runner leaves the Executor open, so one Executor serves any number of runners.
+- `runner.backend.n_workers()` and `runner.backend.task_slots()` give the connected workers and
+  cores.
 
 Plans and shipped modules are trusted executable inputs. TaskVine may retry leaves or combines, so
 external writes must be idempotent or content-addressed.
 
 ## graphed vs. traditional Dask/coffea, across three workflows
 
-Each example here runs two ways: through `TaskVineExecutor`, and through a plain local
+Each example here runs two ways: through vine_graph, and through a plain local
 Dask/coffea-style pipeline doing the same selection on the same files. CMS dimuon and ATLAS H→γγ
 have their traditional side in this repo, at
 [`baselines/cms_dimuon_dask.py`](baselines/cms_dimuon_dask.py) and
@@ -296,8 +288,8 @@ performance case.
 16 real ATLAS Open Data ROOT files (~9.86 GB), diphoton selection and mass reconstruction, 60-bin
 100–160 GeV histogram. [`examples/atlas_hyy.py`](examples/atlas_hyy.py) vs.
 [`baselines/atlas_hyy_dask.py`](baselines/atlas_hyy_dask.py) (`dask.dataframe.read_parquet` over
-the same per-file flat Parquets, `scheduler="processes"`, 4 workers, matching graphed's
-`libcores=4`):
+the same per-file flat Parquets, `scheduler="processes"`, 4 workers, matching the 4 cores graphed's worker
+used):
 
 | | graphed + TaskVine | traditional Dask |
 |---|---|---|
@@ -370,7 +362,7 @@ python -m pytest -q tests
 The default test suite uses vine_graph's local mode. Run the worker integration path with:
 
 ```bash
-GTV_WORKER=1 python -m pytest -q tests/test_executor.py
+GTV_WORKER=1 python -m pytest -q tests/test_vine_graph.py
 ```
 
 ## License

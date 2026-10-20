@@ -55,16 +55,20 @@ def build_plan(parquet_path):
 
 
 def main():
+    from graphed_executors.vine_graph_backend import vine_graph_runner
+
     from examples import vine_options
 
     parser = argparse.ArgumentParser()
     parser.add_argument("--data-dir", type=Path, default=Path("cms-dimuon-data"))
     vine_options.add_arguments(parser, "graphed-dimuon")
     args = parser.parse_args()
+    # Tasks run in sandboxes of their own, so the paths they read are absolute.
+    args.data_dir = args.data_dir.resolve()
 
     plan = build_plan(prepare_data(args.data_dir))
-    with vine_options.executor(args) as executor:
-        result = executor.run(plan)
+    with vine_options.executor(args) as executor, vine_graph_runner(executor) as runner:
+        result = runner.run(plan)
 
     histogram = gh.unpack(result.value)["dimuon_mass"]
     peak = histogram.axes[0].centers[histogram.values().argmax()]

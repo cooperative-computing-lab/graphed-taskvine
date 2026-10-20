@@ -532,6 +532,8 @@ def build_plan(files: list[str], *, ecf_upper_bound=3, puppi_constituents=True, 
 def main():
     import argparse
 
+    from graphed_executors.vine_graph_backend import vine_graph_runner
+
     from examples import vine_options
 
     parser = argparse.ArgumentParser(
@@ -541,15 +543,20 @@ def main():
     parser.add_argument("--files", type=int, default=5, help="first N ROOT files to process; 0 = all")
     vine_options.add_arguments(parser, "graphed-dv5")
     args = parser.parse_args()
+    # Tasks run in sandboxes of their own, so the paths they read are absolute.
+    args.data_dir = args.data_dir.resolve()
 
     files = prepare_data(args.data_dir, args.files)
     plan, info = build_plan(files)
 
     # The plan holds instances of classes defined here, which workers load by module name: they get this
     # package (examples) in their sandbox, and main() runs as examples.dv5, never as __main__.
-    with vine_options.executor(args, ship=[Path(__file__).resolve().parent]) as executor:
+    with (
+        vine_options.executor(args, ship=[Path(__file__).resolve().parent]) as executor,
+        vine_graph_runner(executor) as runner,
+    ):
         t0 = time.perf_counter()
-        result = executor.run(plan)
+        result = runner.run(plan)
         run_s = time.perf_counter() - t0
 
     n_selected = sum(entry["n_selected"] for entry in result.value.values())

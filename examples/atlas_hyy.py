@@ -3,7 +3,7 @@
 Downloads the 16 public GamGam ROOT files from the "2025e-13tev-beta" ATLAS Open Data release
 (https://opendata.cern.ch, ~9.86 GB total) through atlasopenmagic/fsspec, applies the same photon
 selection as the ATLAS Open Data H->yy notebook (tight ID, pT, isolation, eta transition veto,
-diphoton mass window), and fills a 100-160 GeV histogram through this executor.
+diphoton mass window), and fills a 100-160 GeV histogram on vine_graph.
 """
 
 import argparse
@@ -111,16 +111,20 @@ def build_plan(parquet_paths):
 
 
 def main():
+    from graphed_executors.vine_graph_backend import vine_graph_runner
+
     from examples import vine_options
 
     parser = argparse.ArgumentParser()
     parser.add_argument("--data-dir", type=Path, default=Path("atlas-hyy-data"))
     vine_options.add_arguments(parser, "graphed-hyy")
     args = parser.parse_args()
+    # Tasks run in sandboxes of their own, so the paths they read are absolute.
+    args.data_dir = args.data_dir.resolve()
 
     plan = build_plan(prepare_data(args.data_dir))
-    with vine_options.executor(args) as executor:
-        result = executor.run(plan)
+    with vine_options.executor(args) as executor, vine_graph_runner(executor) as runner:
+        result = runner.run(plan)
 
     histogram = gh.unpack(result.value)["diphoton_mass"]
     peak = histogram.axes[0].centers[histogram.values().argmax()]

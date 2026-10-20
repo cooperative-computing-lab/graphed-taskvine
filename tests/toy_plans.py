@@ -34,20 +34,6 @@ def fail_on_three(partition, resources):
     return 1
 
 
-def read_text(partition, resources):
-    with open(partition.uri) as f:
-        return [f.read().strip()]
-
-
-def relative_file_plan(names):
-    return Plan(
-        process=read_text,
-        combine=concat,
-        empty=empty_list,
-        tasks=tuple(Task(i, Partition(n, "", 0, 1)) for i, n in enumerate(names)),
-    )
-
-
 def add(a, b):
     return a + b
 
@@ -119,11 +105,3 @@ class Batches:
 def adaptive_plan(n=9, size=3, target_events=None):
     stop = StopCondition(target_events=target_events) if target_events else None
     return Plan(process=width, combine=add, empty=zero, next_tasks=Batches(n, size), stop=stop)
-
-
-def duplicate_key_plan():
-    tasks = (
-        Task(1, Partition("a", "Events", 0, 1)),
-        Task(1, Partition("b", "Events", 0, 1)),
-    )
-    return Plan(process=width, combine=add, empty=zero, tasks=tasks)

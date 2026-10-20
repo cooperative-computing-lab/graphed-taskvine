@@ -1,6 +1,6 @@
 """Traditional local-Dask baseline for the ATLAS H -> gamma gamma diphoton workflow.
 
-Reads the identical per-file flat Parquet files that examples/atlas_hyy.py's TaskVineExecutor
+Reads the identical per-file flat Parquet files that examples/atlas_hyy.py's vine_graph run
 path produces and consumes (leading-two-photon pt/eta/phi/e/isTightID/ptcone20 columns, one
 partition per input ROOT file), applies the identical selection and by-hand invariant-mass
 formula, and fills the identical 100-160 GeV histogram -- but with a plain local
@@ -57,7 +57,9 @@ def build_graph(parquet_paths):
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--data-dir", type=Path, default=Path("atlas-hyy-data"))
-    parser.add_argument("--workers", type=int, default=4, help="matches examples.atlas_hyy's libcores=4")
+    parser.add_argument(
+        "--workers", type=int, default=4, help="processes, as many as the cores of one vine_graph worker"
+    )
     parser.add_argument("--scheduler", default="processes", choices=["processes", "threads", "sync"])
     args = parser.parse_args()
 

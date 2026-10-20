@@ -7,9 +7,9 @@ For a new analysis, use a named subdirectory here for its Graphed workflow, refe
 and result notes. The existing `cms_dimuon_dask.py` and `atlas_hyy_dask.py` files are comparison
 baselines for the examples already in this repository.
 
-Graphed + TaskVine workflows here must import `TaskVineExecutor` from
-`graphed_executors.taskvine_backend`. The executor implementation and its public API belong to
-[`JinZhou5042/graphed-executors`](https://github.com/JinZhou5042/graphed-executors/tree/taskvine/src/graphed_executors/taskvine_backend);
+Graphed workflows here run on TaskVine with `vine_graph_runner` from
+`graphed_executors.vine_graph_backend`. The backend and its public API belong to
+[`JinZhou5042/graphed-executors`](https://github.com/JinZhou5042/graphed-executors/tree/vine-graph/src/graphed_executors/vine_graph_backend);
 do not copy backend code into this repository.
 
 ## Coffea virtual-array baseline and scale-up
@@ -49,8 +49,8 @@ The 16-file dataset produces 10,240 leaf tasks and 10,239 combine tasks. Use thi
 directory for every runner in the scale-up comparison. Start the manager:
 
 ```bash
-python -m baselines.atlas_hyy_graphed --data-dir atlas-hyy-shards --backend taskvine \
-  --cores 16 --wait-for-workers 40 --manager-name graphed-hyy-scale --output scale40.json
+python -m baselines.atlas_hyy_graphed --data-dir atlas-hyy-shards --backend vine_graph \
+  --wait-for-workers 40 --manager-name graphed-hyy-scale --output scale40.json
 ```
 
 Package the environment with a regular (not editable) installation of `graphed-executors`, then

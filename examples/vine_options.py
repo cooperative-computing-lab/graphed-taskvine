@@ -1,6 +1,7 @@
-"""Command-line options shared by the examples for running on vine_graph.
+"""Command-line options shared by the examples, and the vine_graph Executor they describe.
 
-Every example runs its plan through ``graphed_executors.taskvine_backend.TaskVineExecutor``:
+Every example runs its plan with ``graphed_executors.vine_graph_backend.vine_graph_runner`` on a vine_graph
+``Executor``:
 
 - without ``--distributed``, each task runs in this process (vine_graph's local mode), for a quick check;
 - with ``--distributed``, a TaskVine manager named ``--manager-name`` listens on ``--port`` and waits for
@@ -13,14 +14,15 @@ Every example runs its plan through ``graphed_executors.taskvine_backend.TaskVin
 from __future__ import annotations
 
 import argparse
+from collections.abc import Sequence
+from pathlib import Path
+from typing import Any
 
-from graphed_executors.taskvine_backend import TaskVineExecutor
 
-
-def _port(text: str) -> int | tuple[int, int]:
+def _port(text: str) -> int | list[int]:
     """A port, or a range written low:high."""
     low, _, high = text.partition(":")
-    return (int(low), int(high)) if high else int(low)
+    return [int(low), int(high)] if high else int(low)
 
 
 def _setting(text: str) -> tuple[str, float]:
@@ -35,7 +37,7 @@ def add_arguments(parser: argparse.ArgumentParser, manager_name: str) -> None:
     group = parser.add_argument_group("vine_graph")
     group.add_argument("--distributed", action="store_true", help="run on TaskVine workers")
     group.add_argument("--manager-name", default=manager_name, help="name workers and factories connect to")
-    group.add_argument("--port", type=_port, default=(9100, 9199), help="manager port, or a range low:high")
+    group.add_argument("--port", type=_port, default=[9100, 9199], help="manager port, or a range low:high")
     group.add_argument("--workers", type=int, default=1, help="workers to wait for before the first task")
     group.add_argument(
         "--param",
@@ -48,14 +50,20 @@ def add_arguments(parser: argparse.ArgumentParser, manager_name: str) -> None:
     group.add_argument("--run-info", default=None, help="directory of the manager's logs")
 
 
-def executor(args: argparse.Namespace, **options: object) -> TaskVineExecutor:
-    """The TaskVineExecutor the options describe. ``options`` are passed on, such as ``ship``."""
-    return TaskVineExecutor(
-        manager_name=args.manager_name,
-        port=args.port if args.distributed else 0,
+def executor(args: argparse.Namespace, ship: Sequence[Path] = ()) -> Any:
+    """The vine_graph Executor the options describe. Every worker gets the files or directories in ``ship`` in
+    its sandbox, where Python imports them."""
+    from ndcctools.taskvine import vine_graph as vg
+
+    params = dict(args.param)
+    if args.distributed:
+        params.setdefault("wait-for-workers", args.workers)
+    options = {} if args.run_info is None else {"run_info_path": args.run_info}
+    return vg.Executor(
+        args.port if args.distributed else 0,
+        args.manager_name,
         local=not args.distributed,
-        wait_for_workers=args.workers if args.distributed else 0,
-        params=dict(args.param),
-        run_info_path=args.run_info,
+        library_files={str(Path(path).resolve()): Path(path).name for path in ship} or None,
+        params=params,
         **options,
     )
