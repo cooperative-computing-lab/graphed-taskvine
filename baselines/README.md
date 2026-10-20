@@ -31,7 +31,7 @@ python -m baselines.atlas_hyy_graphed --data-dir atlas-hyy-data --cores 16 --out
 
 For this NumPy 2.4 environment, the SIMD setting keeps the AVX-512 workers on the same
 calculation path as the AVX2 manager. Without it, a few float32 boundary events moved bins
-in the cluster run; see the [measured results](results/atlas-hyy-2026-10-06/README.md).
+in the cluster run.
 
 Both JSON files contain all 62 histogram bins (including underflow and overflow). Compare
 `bins_with_flow` for exact equality. Timings exclude downloading and ROOT-to-Parquet conversion;
@@ -66,6 +66,6 @@ vine_factory -T condor -M graphed-hyy-scale --min-workers 40 --max-workers 40 \
 ```
 
 Stop the Factory after the run. Input paths must be accessible on the workers. `run_s` includes
-worker admission and library startup; manager/worker status and TaskVine logs provide the actual
-worker count and task execution evidence. Compare against a 1-worker, 16-core run using the same
+worker admission and library startup; the report's `vine_graph` statistics (makespan, tasks,
+recovery tasks), `run_stats`, and worker count, with the manager's logs, show what actually ran. Compare against a 1-worker, 16-core run using the same
 files before interpreting scaling.

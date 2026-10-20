@@ -1,3 +1,0 @@
-=== Makespan: 173.553241 seconds
-=== Total tasks completed: 20479
-=== Throughput: 117.998373 tasks/s
