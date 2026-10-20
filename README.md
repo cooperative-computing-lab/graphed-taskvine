@@ -73,10 +73,10 @@ survives worker churn without restarting. Each core of a worker runs one task at
 ## Install vine_graph
 
 vine_graph is a CCTools development interface, so the released `ndcctools` Conda package does not
-include it. Build the `vine-graph-graphed` branch in its own Conda environment:
+include it. Build the `vine-graph` branch in its own Conda environment:
 
 ```bash
-git clone --branch vine-graph-graphed --single-branch https://github.com/JinZhou5042/cctools.git cctools-src
+git clone --branch vine-graph --single-branch https://github.com/JinZhou5042/cctools.git cctools-src
 cd cctools-src
 unset PYTHONPATH
 conda env create -y -f environment.yml
@@ -95,7 +95,7 @@ vine_worker --version
 ```
 
 The branch's
-[vine_graph guide](https://github.com/JinZhou5042/cctools/blob/vine-graph-graphed/doc/manuals/taskvine/vine-graph.md)
+[vine_graph guide](https://github.com/JinZhou5042/cctools/blob/vine-graph/doc/manuals/taskvine/vine-graph.md)
 covers local runs, workers, factories, and settings.
 
 ## Install Graphed and the experimental workflows
