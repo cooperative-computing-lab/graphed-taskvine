@@ -1,7 +1,7 @@
 boost-histogram>=1.4
 cloudpickle>=3
 graphed[awkward,parquet]==0.0.8
-graphed-executors @ git+https://github.com/JinZhou5042/graphed-executors.git@52eb90c2a2b10af28abb1a263fd8f028bdd01025
+graphed-executors @ git+https://github.com/JinZhou5042/graphed-executors.git@1453289d41bd1af3b83ce8af89db015e3b62f8f3
 graphed-histogram @ git+https://github.com/graphed-org/graphed-histogram@3830acaa26a9a5860892f263c0b0ca8c96efadb8
 numpy>=1.24
 pytest>=8
