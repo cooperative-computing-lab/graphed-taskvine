@@ -14,7 +14,7 @@ do not copy backend code into this repository.
 
 ## Coffea virtual-array baseline and scale-up
 
-Install `python -m pip install -r baselines/requirements.txt` in the VineGraph environment.
+Install `python -m pip install -r baselines/requirements.txt` in the vine_graph environment.
 `atlas_hyy_coffea.py` uses a Coffea `ProcessorABC`, `NanoEventsFactory` in `virtual` mode,
 and a standard Python process pool. It reads the same prepared flat Parquet files and applies
 exactly the existing ATLAS example's cuts and histogram definition. No Dask scheduler is used.

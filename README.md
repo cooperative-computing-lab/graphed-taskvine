@@ -3,12 +3,12 @@
 This repository is the experimental home for Graphed + TaskVine HEP workflows, comparison
 pipelines, baselines, and measured results. New experiments belong under [`baselines/`](baselines/).
 
-The TaskVine executor implementation is maintained in
-[`JinZhou5042/graphed-executors`](https://github.com/JinZhou5042/graphed-executors/tree/taskvine/src/graphed_executors/taskvine_backend).
-Every workflow and test here imports its public `graphed_executors.taskvine_backend` interface;
-this repository does not keep a second executor implementation. A `graphed` `Plan` runs on
-[TaskVine](https://cctools.readthedocs.io/en/latest/taskvine/) through that backend's VineGraph
-interface.
+The TaskVine executor is maintained in
+[`JinZhou5042/graphed-executors`](https://github.com/JinZhou5042/graphed-executors/tree/vine-graph/src/graphed_executors/taskvine_backend)
+(branch `vine-graph`). Every workflow and test here imports its public
+`graphed_executors.taskvine_backend.TaskVineExecutor`; this repository keeps no executor of its own.
+A `graphed` `Plan` runs on [TaskVine](https://cctools.readthedocs.io/en/latest/taskvine/) through
+vine_graph (`ndcctools.taskvine.vine_graph`), the CCTools task-graph executor.
 
 ## Architecture
 
@@ -33,9 +33,9 @@ interface.
     combine(left, right)
     empty()
        |
-       | graphed_executors.taskvine_backend.TaskVineExecutor.lower
+       | TaskVineExecutor.run: graphed-executors' SubmitRunner
        v
-  VineGraph workflow
+  vine_graph Executor (a TaskVine manager)
        |
        +-- leaf 0: process(partition 0) --+
        +-- leaf 1: process(partition 1) --+-- fixed binary combine tree --> result
@@ -55,26 +55,29 @@ interface.
 There are two distinct granularities:
 
 - graphed fuses ordinary operation subgraphs into local IR stages;
-- this executor runs the complete per-partition IR as one TaskVine leaf task.
+- this executor runs the complete per-partition IR as one TaskVine task.
 
 TaskVine does not receive one task per recorded array operation. For `N` fixed partitions it sees
-`N` leaf tasks and `N - 1` binary combine tasks, or `2N - 1` workflow nodes. This is intentionally
-coarser than a Dask graph that exposes many array, schema, and I/O keys per partition.
+`N` leaf tasks and `N - 1` binary combine tasks, or `2N - 1` tasks. This is intentionally coarser
+than a Dask graph that exposes many array, schema, and I/O keys per partition.
+
+vine_graph moves each partial result from the worker that made it to the worker that combines it,
+keeps a copy in the manager's vault, and recomputes a result whose workers were lost, so a run
+survives worker churn without restarting. Each core of a worker runs one task at a time.
 
 ## Requirements
 
 - Python 3.11 or newer;
-- the graphed commit pinned in [`requirements.txt`](requirements.txt), matching the executor's API;
-- the TaskVine executor commit pinned in [`requirements.txt`](requirements.txt);
-- a TaskVine build that provides `ndcctools.taskvine.vine_graph`.
+- a CCTools build that provides `ndcctools.taskvine.vine_graph` (below);
+- the graphed release and the TaskVine executor commit pinned in [`requirements.txt`](requirements.txt).
 
-## Install VineGraph
+## Install vine_graph
 
-VineGraph is currently a CCTools development interface, so the released `ndcctools` Conda package
-may not include it. Build the `task-graph` branch in its own Conda environment:
+vine_graph is a CCTools development interface, so the released `ndcctools` Conda package does not
+include it. Build the `vine-graph-graphed` branch in its own Conda environment:
 
 ```bash
-git clone --branch task-graph --single-branch https://github.com/JinZhou5042/cctools.git cctools-src
+git clone --branch vine-graph-graphed --single-branch https://github.com/JinZhou5042/cctools.git cctools-src
 cd cctools-src
 unset PYTHONPATH
 conda env create -y -f environment.yml
@@ -85,24 +88,20 @@ make -j4
 make install
 ```
 
-Verify both the Python interface and worker executable:
+Verify both the Python interface and the worker executable:
 
 ```bash
-python -c "from ndcctools.taskvine.vine_graph import VineGraph, Workflow"
+python -c "from ndcctools.taskvine import vine_graph as vg; print(vg.Executor)"
 vine_worker --version
 ```
 
 The branch's
-[VineGraph guide](https://github.com/JinZhou5042/cctools/blob/task-graph/doc/manuals/taskvine/vine-graph.md)
-covers local workflows, workers, HTCondor submission, factories, and execution parameters. The
-explicit Python pin above avoids an untested future Python version when `environment.yml` resolves
-its broad `python=3` requirement.
+[vine_graph guide](https://github.com/JinZhou5042/cctools/blob/vine-graph-graphed/doc/manuals/taskvine/vine-graph.md)
+covers local runs, workers, factories, and settings.
 
 ## Install Graphed and the experimental workflows
 
-Clone this experimental repository inside the active `cctools-dev` environment. Its requirements
-install the pinned Graphed core and TaskVine executor from their owning repositories, plus the
-histogram, Uproot, and development dependencies used by these workflows:
+Inside the active `cctools-dev` environment:
 
 ```bash
 git clone https://github.com/cooperative-computing-lab/graphed-taskvine.git
@@ -111,14 +110,20 @@ python -m pip install -r requirements.txt
 python -c "import graphed; from graphed_executors.taskvine_backend import TaskVineExecutor"
 ```
 
+Workers need the same packages: `graphed`, `graphed-executors`, `graphed-histogram`, and whatever
+the analysis imports (`awkward`, `uproot`, ...). With a factory, pack this environment
+(`poncho_package_create` or `conda-pack`) and pass it with `--poncho-env`. vine_graph's library
+refuses to start on a worker whose vine_graph Python code differs from the manager's, and says so.
+
 ## Quick start
 
 The example downloads 16 public GamGam ROOT files from the `2025e-13tev-beta`
 [ATLAS Open Data](https://opendata.cern.ch) 13 TeV release (about 9.86 GB), records the same
 event selection as the ATLAS Open Data H->yy notebook with Graphed, and fills a histogram through
-this executor. One partition is created per input ROOT file.
+this executor. One partition is created per input ROOT file; once the flat Parquet files exist,
+nothing is downloaded again.
 
-Run the complete workflow locally through VineGraph:
+Run the complete workflow in this process (vine_graph's local mode, for a quick check):
 
 ```bash
 python -m examples.atlas_hyy
@@ -156,76 +161,89 @@ histogram = gh.boost.Histogram(bh.axis.Regular(60, 100.0, 160.0), storage=bh.sto
 histogram.fill(mass)
 plan = gh.plan({"diphoton_mass": histogram})
 
-with TaskVineExecutor(local=True, port=0) as executor:
+with TaskVineExecutor(manager_name="graphed-hyy", wait_for_workers=1) as executor:
     result = executor.run(plan)
 ```
 
-To execute the same plan on a TaskVine worker, use two terminals in the same environment:
+To run the same plan on TaskVine workers, start workers that connect to the manager by name, by
+hand or through a factory, and pass `--distributed`. The input files must be readable by the
+workers at the same paths (a shared file system):
 
 ```bash
-# terminal 1
+# terminal 1: a worker by hand ...
 vine_worker -M graphed-hyy --cores 4
+# ... or 50 workers from HTCondor
+vine_factory -T condor -M graphed-hyy --min-workers 50 --max-workers 50 --cores 4
 
 # terminal 2, from this repository
-python -m examples.atlas_hyy --distributed
+python -m examples.atlas_hyy --distributed --workers 1
 ```
 
-`local=True` still uses VineGraph and the same binary reduction topology; it is not the same as
-graphed's `SequentialRunner`.
-
-[`examples/cms_dimuon.py`](examples/cms_dimuon.py) remains in the repository as a much smaller and
-faster (single-file, 2,304-event) smoke test of the same pattern.
+Every example takes the same options ([`examples/vine_options.py`](examples/vine_options.py)):
+`--distributed`, `--manager-name`, `--port` (a port or a range `low:high`, default `9100:9199`),
+`--workers` (workers to wait for), `--param name=value` (any vine_graph setting, such as
+`max-retries=3`; repeatable), and `--run-info` (the directory of the manager's logs).
+[`examples/cms_dimuon.py`](examples/cms_dimuon.py) is a much smaller and faster (single-file,
+2,304-event) smoke test of the same pattern, and [`examples/dv5.py`](examples/dv5.py) the large one.
 
 ## Execution guarantees
 
-- One leaf task is created for each `Plan.tasks` entry.
-- Leaves are ordered by unique `Task.key` values.
-- Fixed plans use the same deterministic binary tree as `graphed-executors`.
-- A fixed plan with `N` partitions performs exactly `N - 1` combines.
+- One leaf task is created for each `Plan.tasks` entry, and leaves are ordered by unique `Task.key`
+  values.
+- Fixed plans use graphed's deterministic binary tree (`plan_tree`), so a float result is bit for
+  bit what graphed's local executors return from the same leaf values. A fixed plan with `N`
+  partitions performs exactly `N - 1` combines.
 - Worker exceptions are re-raised on the driver as their original type when serializable, with the
-  remote traceback attached as an exception note.
-- Relative local partition paths that exist on the driver are resolved before sandbox execution.
-- Adaptive `next_tasks` plans execute one binary-reduced VineGraph workflow per round, update
-  `ExecContext`, and evaluate `StopCondition` between rounds.
+  worker's traceback attached as an exception note; otherwise `TaskVineWorkerError` carries it.
+- Relative local partition paths that exist on the driver are resolved before tasks run.
+- Adaptive plans (`next_tasks`) run batch by batch on the same workers: `ExecContext` is updated as
+  partitions complete, and `StopCondition` is checked as they do, so a run may stop inside a batch.
+- A worker that is lost (evicted, killed, out of memory) costs only the tasks it held: vine_graph
+  runs them again elsewhere, and recomputes a partial result that existed only on that worker. A task
+  whose workers keep dying fails the run with an error naming it.
 
 Task keys must be unique for the entire run. `process`, `combine`, and `empty` must follow the
 graphed `Plan` contract. In particular, `combine` must be associative and commutative, and task
 bodies should be safe to retry because TaskVine may re-execute work after worker loss.
 
+Leaf results depend on the CPU that computes them when the analysis uses floating-point math whose
+library picks code by CPU features: on a cluster with AVX-512 and AVX2 machines, an event near a cut
+or a bin edge may land differently from one run to the next. Compare such histograms within a small
+tolerance, or pin numpy's code paths as [`baselines/README.md`](baselines/README.md) does.
+
 ## Integration interface
 
 ```python
 TaskVineExecutor(
-    manager=None,                 # optional caller-owned VineGraph manager
+    manager=None,                 # an open vine_graph.Executor to run on; the caller keeps owning it
     manager_name="graphed-taskvine",
-    port=(9100, 9199),
-    local=False,                  # VineGraph local-execute mode
-    libcores=16,
+    port=(9100, 9199),            # a port, or a range
+    local=False,                  # run each task in this process, without a manager or workers
     wait_for_workers=0,
-    work_dir=None,
-    ship=(),                      # extra worker-side modules
-    params=None,                  # additional VineGraph parameters
+    work_dir=None,                # directory of file results (default ./vine-graph-work)
+    ship=(),                      # files or directories every worker gets, importable there
+    params=None,                  # vine_graph settings, such as {"max-retries": 3}
+    run_info_path=None,           # where the manager writes its logs
+    run_info_template=None,
+    monitor=None, retries=3, max_in_flight=2, services=None, control=None,  # SubmitRunner options
+    libcores=None,                # accepted and ignored: each worker core runs one task
 )
 ```
 
-The executor accepts `graphed.core.execution.Plan` and returns
-`graphed.core.execution.ExecResult`. Construction is lazy: the manager is created only when a
-non-empty plan runs or `.manager` is accessed. A caller-supplied manager remains caller-owned;
-otherwise `close()` or the context manager releases the executor-owned manager.
+The executor accepts `graphed.core.execution.Plan` (and graphed-executors' staged `DurablePlanV2`)
+and returns `graphed.core.execution.ExecResult`. The manager is created when the first plan with
+tasks runs, or when `.manager` is read: an empty plan returns `plan.empty()`, and a plan whose task
+keys repeat raises `ValueError`, without starting one. `close()` or the context manager releases an
+executor-owned manager.
 
-The executor's public interface is owned by `graphed-executors`: `TaskVineExecutor.run(plan) ->
-ExecResult`, `close()`, `__enter__()`, `__exit__()`, `last_stats`, `RunStats`, and
-`TaskVineWorkerError`. This repository uses that interface and does not define its own.
-
-`lower(plan)` remains available as an advanced graph-inspection and benchmarking hook, but it is
-not part of the compatibility contract. It returns the VineGraph workflow and root handle, and
-requires at least one task. Missing shipped paths, duplicate sandbox destinations, and duplicate
-task keys fail before submission. Worker failures preserve their original exception type when
-serializable; otherwise `TaskVineWorkerError` carries the remote traceback.
+The public interface is owned by `graphed-executors`: `run(plan) -> ExecResult`, `close()`,
+`__enter__()`, `__exit__()`, `manager`, `port`, `last_stats` (a `RunStats` with `n_tasks`,
+`n_graph_nodes`, `n_rounds`, `lower_s`, `vine_run_s`, `total_s`, and `rounds`), and
+`TaskVineWorkerError`. `lower(plan)` is an inspection hook: it returns the same reduction as a
+vine_graph `Graph` and its root node, which `executor.manager.run(graph, [root])` computes.
 
 Plans and shipped modules are trusted executable inputs. TaskVine may retry leaves or combines, so
-external writes must be idempotent or content-addressed. Adaptive stop conditions are evaluated
-between rounds rather than during a running round.
+external writes must be idempotent or content-addressed.
 
 ## graphed vs. traditional Dask/coffea, across three workflows
 
@@ -248,7 +266,10 @@ byte-identical to the DAGVine/SC26 hero-run reference.
 | [ATLAS H→γγ](#quick-start) | 16 files, 9.86 GB | 9.9 s (5.35 s execution) | 52.25 s | ~5.3x | exact match |
 | [DV5](#dv5-run-it-yourself) | 800 files, 22 GB | 499.7 s (~8.3 min) | 1,316.1 s (~21.9 min) | ~2.6x | bit-for-bit identical |
 
-All three ran on one machine, locally, no distributed factory.
+All three ran on one machine, locally, no distributed factory, on the earlier VineGraph executor
+(2026-10-05). On vine_graph with HTCondor workers through a factory (2026-10-20): ATLAS H→γγ over
+10,240 Parquet shards in 6.6 s of makespan (251,659 events, exact), and DV5 over all 800 files in
+35 s (275 events).
 
 ### CMS dimuon (toy scale)
 
@@ -261,7 +282,7 @@ Single 2,304-event file, opposite-sign muon pairs, invariant mass, 60-bin 60–1
 |---|---|---|
 | events in 60–120 GeV | 2004 | 2004 |
 | peak bin center | 90.5 GeV | 90.5 GeV |
-| scheduled units | 9 VineGraph tasks (5 process + 4 combine) | 135 dask graph keys |
+| scheduled units | 9 TaskVine tasks (5 process + 4 combine) | 135 dask graph keys |
 | cold wall time | 1.789 s | 1.77–1.89 s |
 
 No real speedup here, and that's expected: the actual work is well under a second on either side
@@ -282,13 +303,13 @@ the same per-file flat Parquets, `scheduler="processes"`, 4 workers, matching gr
 |---|---|---|
 | events in 100–160 GeV | 251659 | 251659 |
 | peak bin center | 100.5 GeV | 100.5 GeV |
-| scheduled units | 31 VineGraph tasks (16 process + 15 combine) | 1,232 dask graph keys |
+| scheduled units | 31 TaskVine tasks (16 process + 15 combine) | 1,232 dask graph keys |
 | graph build | n/a | 0.13 s |
 | execution / compute | 5.35 s makespan | 50.79 s |
 | total wall time | 9.9 s | 52.25 s |
 
 ~5.3x faster wall-to-wall, with no metadata-scan trick involved. Both sides read the same
-already-flattened Parquet files, so the gap is scheduling granularity alone: one VineGraph task
+already-flattened Parquet files, so the gap is scheduling granularity alone: one TaskVine task
 runs a whole file's fused IR, while Dask spreads the same work over 1,232 keys, each carrying its
 own dispatch overhead.
 
@@ -312,9 +333,10 @@ python -m examples.dv5 --data-dir dv5-data --files 5
 By default this downloads the ~22 GB Zenodo archive on first use and processes the first 5 of its
 800 files. Point `--data-dir` at an existing extraction (for example a previously downloaded
 `hgg_0`) and pass `--files 0` to reproduce the full-dataset numbers below with local execution.
-`--distributed` is not yet verified for this example (unlike `examples/atlas_hyy.py`). The numbers
-below were produced with the underlying analysis run directly against a real `vine_worker`, not
-through this CLI's `--distributed` flag.
+`--distributed` runs it on TaskVine workers like the other examples: on 100-400 HTCondor workers
+through a factory, the full 800-file dataset (1,599 tasks) took 35 s and selected the same 275
+events (2026-10-20). The local numbers below were produced with the underlying analysis run
+directly against a real `vine_worker`.
 
 Both systems ran the full 22 GB, 800-file `hgg_0` dataset locally on the same machine, capped at
 16 cores (graphed: one local `vine_worker --cores 16`, Dask/coffea: `dask.compute(..., scheduler=
@@ -324,7 +346,7 @@ Both systems ran the full 22 GB, 800-file `hgg_0` dataset locally on the same ma
 |---|---|---|
 | fileset metadata scan | ~0 s (blind partitions: one file opened for schema, `N` for data) | 684.4 s (0.86 s/file × 800, single-threaded `uproot.open`) |
 | graph build | 2.19 s (`source_open` 1.02 s + `record` 1.16 s + `compile` 0.008 s) | 2.4 s (`apply_to_fileset`) + 0.003 s (key count) |
-| scheduled units | 1,599 VineGraph tasks (800 leaves + 799 combines) | 264,826 graph keys (331/file) |
+| scheduled units | 1,599 TaskVine tasks (800 leaves + 799 combines) | 264,826 graph keys (331/file) |
 | execution / compute | 495.4 s makespan (real local worker, 16 cores) | 629.3 s (`scheduler=processes`, 16 workers) |
 | **total wall time** | **≈ 499.7 s (~8.3 min)** | **≈ 1,316.1 s (~21.9 min)** |
 | selected events (of 800 files) | 275 | 275 |
@@ -345,7 +367,7 @@ ruff format --check --target-version py311 --line-length 110 tests examples base
 python -m pytest -q tests
 ```
 
-The default test suite uses VineGraph local execution. Run the worker integration path with:
+The default test suite uses vine_graph's local mode. Run the worker integration path with:
 
 ```bash
 GTV_WORKER=1 python -m pytest -q tests/test_executor.py

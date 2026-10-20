@@ -16,7 +16,6 @@ import numpy as np
 import uproot
 from graphed import Session
 from graphed.awkward import AwkwardBackend, from_parquet
-from graphed_executors.taskvine_backend import TaskVineExecutor
 
 RELEASE = "2025e-13tev-beta"
 TREE_NAME = "analysis"
@@ -56,6 +55,10 @@ def _flatten_leading_two(root_path, parquet_path):
 
 def prepare_data(directory):
     directory.mkdir(parents=True, exist_ok=True)
+    # The 16 flat Parquet files are all a run reads; once they exist, nothing is downloaded again.
+    existing = sorted(directory.glob("*.GamGam.parquet"))
+    if len(existing) == 16:
+        return existing
     root_paths = _download(directory)
     parquet_paths = []
     for root_path in root_paths:
@@ -108,19 +111,15 @@ def build_plan(parquet_paths):
 
 
 def main():
+    from examples import vine_options
+
     parser = argparse.ArgumentParser()
-    parser.add_argument("--distributed", action="store_true", help="use a TaskVine worker")
     parser.add_argument("--data-dir", type=Path, default=Path("atlas-hyy-data"))
+    vine_options.add_arguments(parser, "graphed-hyy")
     args = parser.parse_args()
 
     plan = build_plan(prepare_data(args.data_dir))
-    with TaskVineExecutor(
-        manager_name="graphed-hyy",
-        port=(9100, 9199) if args.distributed else 0,
-        local=not args.distributed,
-        libcores=4,
-        wait_for_workers=1 if args.distributed else 0,
-    ) as executor:
+    with vine_options.executor(args) as executor:
         result = executor.run(plan)
 
     histogram = gh.unpack(result.value)["diphoton_mass"]

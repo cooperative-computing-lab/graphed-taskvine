@@ -1,6 +1,7 @@
 """Run the existing ATLAS plan on prepared Parquet shards and save comparable results."""
 
 import argparse
+import dataclasses
 import json
 import time
 from pathlib import Path
@@ -54,8 +55,10 @@ def main():
             "selected_in_range": int(histogram.sum()),
         }
         if args.backend == "taskvine":
-            report["manager_status"] = executor.manager.status("manager")[0]
-            report["worker_status"] = executor.manager.status("workers")
+            report["vine_graph"] = executor.manager.stats()
+            report["run_stats"] = dataclasses.asdict(executor.last_stats)
+            report["workers"] = executor.backend.n_workers()
+            report["worker_cores"] = executor.backend.task_slots()
     args.output.write_text(json.dumps(report, indent=2) + "\n")
     print(json.dumps(report))
 

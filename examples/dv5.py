@@ -52,7 +52,6 @@ from typing import Any
 
 import awkward as ak
 import numpy as np
-from graphed_executors.taskvine_backend import TaskVineExecutor
 
 # The 2017 trigger list from the original analysis's triggers.json (single "2017" entry).
 TRIGGERS_2017 = ["PFHT1050", "AK8PFJet400_TrimMass30", "AK8PFHT800_TrimMass50", "PFJet500", "AK8PFJet500"]
@@ -533,23 +532,22 @@ def build_plan(files: list[str], *, ecf_upper_bound=3, puppi_constituents=True, 
 def main():
     import argparse
 
-    parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("--distributed", action="store_true", help="use a TaskVine worker")
+    from examples import vine_options
+
+    parser = argparse.ArgumentParser(
+        description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter
+    )
     parser.add_argument("--data-dir", type=Path, default=Path("dv5-data"))
     parser.add_argument("--files", type=int, default=5, help="first N ROOT files to process; 0 = all")
-    parser.add_argument("--libcores", type=int, default=16)
+    vine_options.add_arguments(parser, "graphed-dv5")
     args = parser.parse_args()
 
     files = prepare_data(args.data_dir, args.files)
     plan, info = build_plan(files)
 
-    with TaskVineExecutor(
-        manager_name="graphed-dv5",
-        port=(9100, 9199) if args.distributed else 0,
-        local=not args.distributed,
-        libcores=args.libcores,
-        wait_for_workers=1 if args.distributed else 0,
-    ) as executor:
+    # The plan holds instances of classes defined here, which workers load by module name: they get this
+    # package (examples) in their sandbox, and main() runs as examples.dv5, never as __main__.
+    with vine_options.executor(args, ship=[Path(__file__).resolve().parent]) as executor:
         t0 = time.perf_counter()
         result = executor.run(plan)
         run_s = time.perf_counter() - t0
@@ -564,4 +562,6 @@ def main():
 
 
 if __name__ == "__main__":
-    main()
+    from examples import dv5
+
+    dv5.main()

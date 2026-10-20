@@ -1,6 +1,6 @@
 """TaskVineExecutor against graphed's reference executors.
 
-pytest tests/test_executor.py                    # VineGraph local-execute (in-process)
+pytest tests/test_executor.py                    # vine_graph local mode (in-process)
 GTV_WORKER=1 pytest tests/test_executor.py       # a real vine_worker on this host
 """
 
@@ -17,7 +17,7 @@ import pytest
 
 pytest.importorskip(
     "ndcctools.taskvine.vine_graph",
-    reason="integration tests require a TaskVine build with VineGraph",
+    reason="integration tests require a CCTools build with vine_graph",
 )
 
 HERE = Path(__file__).resolve().parent
@@ -146,7 +146,10 @@ def test_adaptive_stop_condition(executor):
     plan = toy_plans.adaptive_plan(n=30, size=3, target_events=50)
     result = executor.run(plan)
     assert result.stopped == StopReason.TARGET_EVENTS
-    assert result.value == 60 and result.n_partitions == 6
+    # The stop is checked as partitions complete, so the run may stop inside a batch, as graphed's own runners
+    # stop at different points too. Each partition holds 10 events, and nothing past the target batch runs.
+    assert result.value == 10 * result.n_partitions
+    assert 50 <= result.value <= 60 and result.n_combines == result.n_partitions - 1
 
 
 def test_duplicate_task_keys_are_rejected(executor):

@@ -11,7 +11,6 @@ import graphed_histogram as gh
 import uproot
 from graphed import Session
 from graphed.awkward import AwkwardBackend, from_parquet
-from graphed_executors.taskvine_backend import TaskVineExecutor
 
 DATA_URL = "https://scikit-hep.org/uproot3/examples/Zmumu.root"
 BRANCHES = ["E1", "px1", "py1", "pz1", "Q1", "E2", "px2", "py2", "pz2", "Q2"]
@@ -56,19 +55,15 @@ def build_plan(parquet_path):
 
 
 def main():
+    from examples import vine_options
+
     parser = argparse.ArgumentParser()
-    parser.add_argument("--distributed", action="store_true", help="use a TaskVine worker")
     parser.add_argument("--data-dir", type=Path, default=Path("cms-dimuon-data"))
+    vine_options.add_arguments(parser, "graphed-dimuon")
     args = parser.parse_args()
 
     plan = build_plan(prepare_data(args.data_dir))
-    with TaskVineExecutor(
-        manager_name="graphed-dimuon",
-        port=(9100, 9199) if args.distributed else 0,
-        local=not args.distributed,
-        libcores=4,
-        wait_for_workers=1 if args.distributed else 0,
-    ) as executor:
+    with vine_options.executor(args) as executor:
         result = executor.run(plan)
 
     histogram = gh.unpack(result.value)["dimuon_mass"]
